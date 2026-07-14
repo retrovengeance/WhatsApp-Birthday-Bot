@@ -1,0 +1,5 @@
+node_modules/
+auth_state/
+config.json
+birthdays.json
+state.json
