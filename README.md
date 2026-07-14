@@ -138,7 +138,3 @@ Designed to run entirely within Google Cloud's **Always Free** tier:
 - 1x `e2-micro` instance (in `us-west1`, `us-central1`, or `us-east1`) is free indefinitely, not a trial.
 - This bot's workload (idle most of the day, sending a handful of messages once a day) uses negligible CPU/RAM — well within the free allowance.
 - Double-check you selected `e2-micro` and a free-tier region when creating the VM; other machine types/regions are billed.
-
-## License
-
-MIT
