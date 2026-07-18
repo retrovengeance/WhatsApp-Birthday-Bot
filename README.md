@@ -74,45 +74,63 @@ cd WhatsApp-Birthday-Bot
 npm install
 ```
 
-### 5. Configure
+### 5. Add swap space (do this before running the bot)
+`e2-micro` has only ~958MB of RAM and **no swap by default**. Left unaddressed, a long-running Node process combined with the OS's background services can fully exhaust memory — at which point the kernel's OOM killer can kill *any* process needing memory next, including `sshd` trying to accept your next SSH login. That looks like "the bot randomly died and I can't even SSH in to fix it," and it's avoidable:
+```bash
+sudo fallocate -l 1G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+This is just a file on the boot disk you already have — it doesn't create a new billable resource or push you outside the Always Free tier (see [Hosting cost](#hosting-cost)).
+
+### 6. Configure
 ```bash
 cp config.example.json config.json
 nano config.json
 ```
 Set `timezone` to your group's actual timezone (e.g. `"Asia/Kolkata"`). Leave `groupJid` blank for now.
 
-### 6. Run it with PM2 (keeps it alive across disconnects/reboots)
+### 7. Run it with PM2 (keeps it alive across disconnects/reboots)
 ```bash
 sudo npm install -g pm2
-pm2 start index.js --name birthday-bot
+pm2 start index.js --name birthday-bot --max-memory-restart 250M
 pm2 logs birthday-bot
 ```
+`--max-memory-restart 250M` makes PM2 proactively restart the bot if it ever creeps up toward the memory ceiling, instead of leaving it to grow unchecked until the kernel OOM killer intervenes (see step 5).
 
-### 7. Link your WhatsApp account
+### 8. Link your WhatsApp account
 Scan the QR code that appears in the logs, using your **spare number** → WhatsApp → Linked Devices. Once you see `Connected to WhatsApp.`, press `Ctrl+C` to stop tailing (the bot keeps running under PM2).
 
-### 8. Add the bot to your friend group
+### 9. Add the bot to your friend group
 From your own phone: open the group → group name → **Add participant** → add the spare number.
 
-### 9. Get the group JID
+### 10. Get the group JID
 In the group chat, send:
 ```
 /groupid
 ```
 The bot replies with an ID ending in `@g.us`.
 
-### 10. Finish the config and restart
+### 11. Finish the config and restart
 ```bash
 nano config.json   # paste the JID into "groupJid"
 pm2 restart birthday-bot
 pm2 save
 ```
 
-### 11. Survive VM reboots
+### 12. Survive VM reboots — do not skip this
 ```bash
 pm2 startup
 ```
-Run the command it prints (it will be specific to your system).
+This prints a `sudo env PATH=... pm2 startup systemd ...` command specific to your system. **You must copy and run that printed command** — `pm2 startup` alone only tells you what to run, it doesn't install anything by itself. Skipping this step means the bot will not come back after any VM reboot (including ones Google performs for host maintenance), silently, with no error to tell you it happened.
+
+Verify it actually took effect:
+```bash
+systemctl status pm2-$(whoami)
+```
+This should show an active/enabled systemd service. If it says `Unit ... could not be found`, the startup script was never installed — re-run the `pm2 startup` command above and paste/run its output.
 
 The bot is now live — friends can `/setbday MM-DD` at any time, and the midnight check runs automatically every day.
 
@@ -138,3 +156,4 @@ Designed to run entirely within Google Cloud's **Always Free** tier:
 - 1x `e2-micro` instance (in `us-west1`, `us-central1`, or `us-east1`) is free indefinitely, not a trial.
 - This bot's workload (idle most of the day, sending a handful of messages once a day) uses negligible CPU/RAM — well within the free allowance.
 - Double-check you selected `e2-micro` and a free-tier region when creating the VM; other machine types/regions are billed.
+- The 1GB swapfile from setup lives on the boot disk you already have and isn't a separate billable resource; it stays within the Always Free tier's persistent disk allowance as long as your total disk usage is under 30GB.
