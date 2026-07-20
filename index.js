@@ -156,6 +156,17 @@ async function startBot() {
   scheduleBirthdayCheck(sock);
 }
 
+function getTodayMMDD(timezone) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const mm = parts.find((p) => p.type === 'month').value;
+  const dd = parts.find((p) => p.type === 'day').value;
+  return `${mm}-${dd}`;
+}
+
 function scheduleBirthdayCheck(sock) {
   cron.schedule(
     '0 0 * * *',
@@ -165,10 +176,7 @@ function scheduleBirthdayCheck(sock) {
         return;
       }
 
-      const now = new Date();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const today = `${mm}-${dd}`;
+      const today = getTodayMMDD(config.timezone);
 
       const todaysBirthdays = getTodaysBirthdays(today);
       if (todaysBirthdays.length === 0) return;
