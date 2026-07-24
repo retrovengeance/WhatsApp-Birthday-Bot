@@ -30,7 +30,9 @@ function getAllBirthdays() {
 
 function getTodaysBirthdays(mmdd) {
   const data = loadBirthdays();
-  return Object.values(data).filter((entry) => entry.date === mmdd);
+  return Object.entries(data)
+    .filter(([, entry]) => entry.date === mmdd)
+    .map(([jid, entry]) => ({ jid, ...entry }));
 }
 
 function loadState() {

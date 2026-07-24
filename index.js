@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -17,6 +19,7 @@ const {
   getLastMessageIndex,
   setLastMessageIndex,
 } = require('./storage');
+const { getRandomBirthdayGif } = require('./gif');
 
 const BDAY_REGEX = /^\d{2}-\d{2}$/;
 
@@ -39,6 +42,22 @@ function isValidMMDD(mmdd) {
   return day >= 1 && day <= daysInMonth;
 }
 
+function isTaggableJid(jid) {
+  return jid.endsWith('@lid') || jid.endsWith('@s.whatsapp.net');
+}
+
+function buildMentionTokens(people) {
+  const mentions = [];
+  const tokens = people.map((p) => {
+    if (isTaggableJid(p.jid)) {
+      mentions.push(p.jid);
+      return `@${p.jid.split('@')[0]}`;
+    }
+    return p.name;
+  });
+  return { tokens, mentions };
+}
+
 function joinNames(names) {
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
@@ -56,12 +75,12 @@ function pickBirthdayMessage(names) {
   return BIRTHDAY_MESSAGES[index](joinNames(names));
 }
 
-async function sendWithTypingSimulation(sock, jid, text) {
+async function sendWithTypingSimulation(sock, jid, text, mentions = []) {
   await sock.sendPresenceUpdate('composing', jid);
   const typingDelay = 3000 + Math.floor(Math.random() * 2000); // 3-5s
   await new Promise((resolve) => setTimeout(resolve, typingDelay));
   await sock.sendPresenceUpdate('paused', jid);
-  await sock.sendMessage(jid, { text });
+  await sock.sendMessage(jid, { text, mentions });
 }
 
 async function startBot() {
@@ -181,10 +200,15 @@ function scheduleBirthdayCheck(sock) {
       const todaysBirthdays = getTodaysBirthdays(today);
       if (todaysBirthdays.length === 0) return;
 
-      const names = todaysBirthdays.map((p) => p.name);
-      const message = pickBirthdayMessage(names);
+      const { tokens, mentions } = buildMentionTokens(todaysBirthdays);
+      const message = pickBirthdayMessage(tokens);
 
-      await sendWithTypingSimulation(sock, config.groupJid, message);
+      await sendWithTypingSimulation(sock, config.groupJid, message, mentions);
+
+      const gifUrl = await getRandomBirthdayGif();
+      if (gifUrl) {
+        await sock.sendMessage(config.groupJid, { video: { url: gifUrl }, gifPlayback: true });
+      }
     },
     { timezone: config.timezone }
   );
