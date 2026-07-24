@@ -3,3 +3,4 @@ auth_state/
 config.json
 birthdays.json
 state.json
+.env
