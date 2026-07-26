@@ -1,3 +1,5 @@
+const { getLastGifIndex, setLastGifIndex } = require('./storage');
+
 const KLIPY_BASE_URL = 'https://api.klipy.com/api/v1';
 const GIF_QUERY = 'birthday meme';
 const RESULT_POOL_SIZE = 10;
@@ -21,7 +23,14 @@ async function getRandomBirthdayGif() {
     const results = body?.data?.data ?? [];
     if (!results.length) return null;
 
-    const pick = results[Math.floor(Math.random() * results.length)];
+    const lastIndex = getLastGifIndex();
+    let index;
+    do {
+      index = Math.floor(Math.random() * results.length);
+    } while (results.length > 1 && index === lastIndex);
+    setLastGifIndex(index);
+
+    const pick = results[index];
     // WhatsApp's gifPlayback expects an actual mp4 video to loop, not a .gif image file.
     return pick?.file?.md?.mp4?.url || null;
   } catch (err) {

@@ -71,6 +71,17 @@ function setLastMessageIndex(index) {
   saveState(state);
 }
 
+function getLastGifIndex() {
+  const state = loadState();
+  return typeof state.lastGifIndex === 'number' ? state.lastGifIndex : null;
+}
+
+function setLastGifIndex(index) {
+  const state = loadState();
+  state.lastGifIndex = index;
+  saveState(state);
+}
+
 module.exports = {
   setBirthday,
   getBirthday,
@@ -78,4 +89,6 @@ module.exports = {
   getTodaysBirthdays,
   getLastMessageIndex,
   setLastMessageIndex,
+  getLastGifIndex,
+  setLastGifIndex,
 };
