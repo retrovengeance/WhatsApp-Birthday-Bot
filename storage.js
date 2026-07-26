@@ -6,11 +6,20 @@ const STATE_PATH = path.join(__dirname, 'state.json');
 
 function loadBirthdays() {
   if (!fs.existsSync(BIRTHDAYS_PATH)) return {};
-  return JSON.parse(fs.readFileSync(BIRTHDAYS_PATH, 'utf8'));
+  try {
+    return JSON.parse(fs.readFileSync(BIRTHDAYS_PATH, 'utf8'));
+  } catch (err) {
+    // Guards against reading birthdays.json mid hand-edit (e.g. nano save-in-progress),
+    // which previously crashed the whole bot process via an unhandled JSON.parse throw.
+    console.log(`birthdays.json is invalid JSON right now (${err.message}); treating as empty for this read.`);
+    return {};
+  }
 }
 
 function saveBirthdays(data) {
-  fs.writeFileSync(BIRTHDAYS_PATH, JSON.stringify(data, null, 2));
+  const tmpPath = `${BIRTHDAYS_PATH}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2));
+  fs.renameSync(tmpPath, BIRTHDAYS_PATH);
 }
 
 function setBirthday(jid, name, mmdd) {
@@ -37,11 +46,18 @@ function getTodaysBirthdays(mmdd) {
 
 function loadState() {
   if (!fs.existsSync(STATE_PATH)) return {};
-  return JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
+  try {
+    return JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
+  } catch (err) {
+    console.log(`state.json is invalid JSON right now (${err.message}); treating as empty for this read.`);
+    return {};
+  }
 }
 
 function saveState(data) {
-  fs.writeFileSync(STATE_PATH, JSON.stringify(data, null, 2));
+  const tmpPath = `${STATE_PATH}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2));
+  fs.renameSync(tmpPath, STATE_PATH);
 }
 
 function getLastMessageIndex() {

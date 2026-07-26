@@ -190,24 +190,39 @@ function scheduleBirthdayCheck(sock) {
   cron.schedule(
     '0 0 * * *',
     async () => {
-      if (!config.groupJid) {
-        console.log('No groupJid set in config.json, skipping birthday check.');
-        return;
-      }
+      const stamp = new Date().toISOString();
+      try {
+        if (!config.groupJid) {
+          console.log(`[${stamp}] No groupJid set in config.json, skipping birthday check.`);
+          return;
+        }
 
-      const today = getTodayMMDD(config.timezone);
+        const today = getTodayMMDD(config.timezone);
+        console.log(`[${stamp}] Birthday check running, today=${today}`);
 
-      const todaysBirthdays = getTodaysBirthdays(today);
-      if (todaysBirthdays.length === 0) return;
+        const todaysBirthdays = getTodaysBirthdays(today);
+        if (todaysBirthdays.length === 0) {
+          console.log(`[${stamp}] No birthdays matched ${today}.`);
+          return;
+        }
 
-      const { tokens, mentions } = buildMentionTokens(todaysBirthdays);
-      const message = pickBirthdayMessage(tokens);
+        const { tokens, mentions } = buildMentionTokens(todaysBirthdays);
+        const message = pickBirthdayMessage(tokens);
 
-      await sendWithTypingSimulation(sock, config.groupJid, message, mentions);
+        await sendWithTypingSimulation(sock, config.groupJid, message, mentions);
+        console.log(`[${stamp}] Birthday message sent for: ${todaysBirthdays.map((p) => p.name).join(', ')}`);
 
-      const gifUrl = await getRandomBirthdayGif();
-      if (gifUrl) {
-        await sock.sendMessage(config.groupJid, { video: { url: gifUrl }, gifPlayback: true });
+        const gifUrl = await getRandomBirthdayGif();
+        if (gifUrl) {
+          await sock.sendMessage(config.groupJid, { video: { url: gifUrl }, gifPlayback: true });
+          console.log(`[${stamp}] Birthday gif sent.`);
+        } else {
+          console.log(`[${stamp}] No gif sent (fetch failed or no API key).`);
+        }
+      } catch (err) {
+        // An uncaught error here would otherwise crash the whole bot process
+        // (unhandled promise rejection) and lose that day's only send window.
+        console.log(`[${stamp}] Birthday check failed:`, err.message);
       }
     },
     { timezone: config.timezone }
