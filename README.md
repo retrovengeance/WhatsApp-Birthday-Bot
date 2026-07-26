@@ -9,11 +9,12 @@ Built on [Baileys](https://github.com/WhiskeySockets/Baileys) (an unofficial Wha
 - **Self-service birthday registration** — anyone in the group can register their own birthday with a single command, no admin needed.
 - **Automatic midnight wishes** — a daily scheduled check fires at 00:00 in your configured timezone and posts to the group if anyone's birthday matches.
 - **Actually tags the birthday person** — the message @-mentions them (when they registered themselves via `/setbday`, so the bot has their real JID), rather than just printing their name as plain text.
-- **Birthday gif** — after the text message, the bot sends a random gif (sourced from [Klipy](https://klipy.com), searching "birthday meme") as a follow-up.
+- **Birthday gif** — after the text message, the bot sends a random gif (sourced from [Klipy](https://klipy.com), searching "birthday meme", picked from the top 10 results) as a follow-up.
 - **Batched messages** — if multiple people share a birthday, they're wished together in a single message instead of a spammy back-to-back sequence.
-- **Randomized, non-repeating messages** — 5 different birthday message variations (different tone/emoji), chosen at random but never repeating the previous day's message.
+- **Randomized, non-repeating messages and gifs** — 5 different birthday message variations (different tone/emoji), and the gif pick, are each chosen at random but never repeat the immediately previous pick.
 - **Human-like sending behavior** — simulates a "typing…" presence for a few seconds before sending, rather than firing off a message instantly like an obvious script.
 - **Resilient reconnection** — if the WhatsApp connection drops, the bot reconnects with exponential backoff instead of hammering the server with retries.
+- **Crash-proof birthday check** — a bad read of `birthdays.json` (e.g. mid hand-edit) or any other unexpected error during the nightly check is caught and logged rather than crashing the whole bot; a single bad night can't take down the rest of the bot's functionality or delay it coming back online.
 - **Zero ongoing cost** — runs comfortably within Google Cloud's Always Free tier (e2-micro instance).
 
 ## How it works
@@ -60,7 +61,7 @@ Generated at runtime (not committed, see `.gitignore`):
 - `config.json` — your real config (group JID + timezone)
 - `.env` — your real Klipy API key
 - `birthdays.json` — registered birthdays
-- `state.json` — tracks the last birthday message used, to avoid repeats
+- `state.json` — tracks the last birthday message and last gif used, to avoid repeats
 - `auth_state/` — your WhatsApp session credentials
 
 ## Installation & deployment (Google Cloud, free tier)
