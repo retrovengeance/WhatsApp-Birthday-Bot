@@ -22,7 +22,8 @@ async function getRandomBirthdayGif() {
     if (!results.length) return null;
 
     const pick = results[Math.floor(Math.random() * results.length)];
-    return pick?.file?.md?.gif?.url || null;
+    // WhatsApp's gifPlayback expects an actual mp4 video to loop, not a .gif image file.
+    return pick?.file?.md?.mp4?.url || null;
   } catch (err) {
     console.log('Error fetching birthday gif:', err.message);
     return null;
