@@ -13,7 +13,7 @@ Built on [Baileys](https://github.com/WhiskeySockets/Baileys) (an unofficial Wha
 - **Batched messages** — if multiple people share a birthday, they're wished together in a single message instead of a spammy back-to-back sequence.
 - **Randomized, non-repeating messages and gifs** — 5 different birthday message variations (different tone/emoji), and the gif pick, are each chosen at random but never repeat the immediately previous pick.
 - **Human-like sending behavior** — simulates a "typing…" presence for a few seconds before sending, rather than firing off a message instantly like an obvious script.
-- **Resilient reconnection** — if the WhatsApp connection drops, the bot reconnects with exponential backoff instead of hammering the server with retries.
+- **Resilient reconnection** — if the WhatsApp connection drops, the bot reconnects with exponential backoff instead of hammering the server with retries. The nightly schedule itself is only ever registered once per process lifetime, so frequent reconnects can't stack up duplicate midnight triggers (an earlier bug that caused dozens of duplicate birthday messages to fire simultaneously).
 - **Crash-proof birthday check** — a bad read of `birthdays.json` (e.g. mid hand-edit) or any other unexpected error during the nightly check is caught and logged rather than crashing the whole bot; a single bad night can't take down the rest of the bot's functionality or delay it coming back online.
 - **Zero ongoing cost** — runs comfortably within Google Cloud's Always Free tier (e2-micro instance).
 
@@ -75,11 +75,12 @@ In the Google Cloud Console → Compute Engine → **Create instance**:
 ### 2. Connect
 Click **SSH** next to the instance in the console — opens a browser-based terminal, no local setup needed.
 
-### 3. Install Node.js and git
+### 3. Install Node.js, git, and ffmpeg
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs git
+sudo apt-get install -y nodejs git ffmpeg
 ```
+`ffmpeg` isn't optional: Baileys uses it to probe the real width/height/duration of the birthday gif and generate a proper thumbnail before sending. Without it, the gif still sends, but WhatsApp **mobile** clients render it as a small, cropped preview that only shows properly once tapped (WhatsApp Desktop looks fine either way, which is what makes this easy to miss during testing).
 
 ### 4. Clone and install
 ```bash

@@ -33,6 +33,11 @@ const BIRTHDAY_MESSAGES = [
 
 const MAX_RECONNECT_DELAY_MS = 60_000;
 let reconnectAttempts = 0;
+// Updated on every (re)connect. The cron job below is registered exactly once for the
+// whole process lifetime and always reads this live reference, rather than closing over
+// a single startBot() invocation's socket — otherwise every reconnect (frequent, since
+// Baileys drops the connection often) would stack another permanent duplicate cron job.
+let sock;
 
 function isValidMMDD(mmdd) {
   if (!BDAY_REGEX.test(mmdd)) return false;
@@ -87,7 +92,7 @@ async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState('auth_state');
   const { version } = await fetchLatestBaileysVersion();
 
-  const sock = makeWASocket({
+  sock = makeWASocket({
     version,
     auth: state,
     logger: pino({ level: 'silent' }),
@@ -171,8 +176,6 @@ async function startBot() {
       });
     }
   });
-
-  scheduleBirthdayCheck(sock);
 }
 
 function getTodayMMDD(timezone) {
@@ -186,12 +189,17 @@ function getTodayMMDD(timezone) {
   return `${mm}-${dd}`;
 }
 
-function scheduleBirthdayCheck(sock) {
+function scheduleBirthdayCheck() {
   cron.schedule(
     '0 0 * * *',
     async () => {
       const stamp = new Date().toISOString();
       try {
+        if (!sock) {
+          console.log(`[${stamp}] Not connected to WhatsApp, skipping birthday check.`);
+          return;
+        }
+
         if (!config.groupJid) {
           console.log(`[${stamp}] No groupJid set in config.json, skipping birthday check.`);
           return;
@@ -232,3 +240,4 @@ function scheduleBirthdayCheck(sock) {
 }
 
 startBot();
+scheduleBirthdayCheck();
